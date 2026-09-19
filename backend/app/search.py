@@ -36,13 +36,19 @@ def search_tickers(query: str, limit: int = 8):
     except (requests.RequestException, ValueError):
         return []
 
+    # Only actual equities and ETFs work with this app's daily-price
+    # prediction flow. Yahoo's search also returns options, futures,
+    # indices, currencies, etc. — those would just produce a confusing
+    # "no data found" error later, so filter them out here instead.
+    ALLOWED_TYPES = {"EQUITY", "ETF"}
+
     results = []
     for quote in data.get("quotes", []):
         symbol = quote.get("symbol")
         name = quote.get("shortname") or quote.get("longname")
         exchange = quote.get("exchange")
-        # Skip results that aren't actual equities (e.g. some indices/futures noise)
-        if symbol and name:
+        quote_type = quote.get("quoteType")
+        if symbol and name and quote_type in ALLOWED_TYPES:
             results.append({"symbol": symbol, "name": name, "exchange": exchange})
 
     return results
