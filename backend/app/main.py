@@ -27,12 +27,7 @@ default_origins = ["http://localhost:5173", "http://localhost:3000"]
 frontend_url = os.environ.get("FRONTEND_URL")
 allowed_origins = default_origins + ([frontend_url] if frontend_url else [])
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware( CORSMiddleware, allow_origins=allowed_origins, allow_origin_regex=r"https://.*\.vercel\.app", allow_methods=["*"], allow_headers=["*"], )
 
 LOOKBACK = 60
 
