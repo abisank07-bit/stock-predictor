@@ -6,6 +6,7 @@ uses). Powers the "type MS, see MSFT" autocomplete in the frontend.
 """
 
 import requests
+import re
 
 YAHOO_SEARCH_URL = "https://query2.finance.yahoo.com/v1/finance/search"
 
@@ -30,25 +31,52 @@ def search_tickers(query: str, limit: int = 8):
     }
 
     try:
-        resp = requests.get(YAHOO_SEARCH_URL, params=params, headers=HEADERS, timeout=5)
+        resp = requests.get(
+            YAHOO_SEARCH_URL,
+            params=params,
+            headers=HEADERS,
+            timeout=5
+        )
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError):
         return []
 
-    # Only actual equities and ETFs work with this app's daily-price
-    # prediction flow. Yahoo's search also returns options, futures,
-    # indices, currencies, etc. — those would just produce a confusing
-    # "no data found" error later, so filter them out here instead.
+    # Only actual equities and ETFs work with the prediction flow.
     ALLOWED_TYPES = {"EQUITY", "ETF"}
 
     results = []
+
     for quote in data.get("quotes", []):
         symbol = quote.get("symbol")
         name = quote.get("shortname") or quote.get("longname")
         exchange = quote.get("exchange")
         quote_type = quote.get("quoteType")
-        if symbol and name and quote_type in ALLOWED_TYPES:
-            results.append({"symbol": symbol, "name": name, "exchange": exchange})
+
+        # Only allow stocks and ETFs
+        if quote_type not in ALLOWED_TYPES:
+            continue
+
+        # Make sure required fields exist
+        if not symbol or not name:
+            continue
+
+        # Extra protection against option-contract symbols
+        # Example rejected:
+        # AAPU290119C00042000
+        if not re.fullmatch(
+            r"[A-Z]{1,5}(?:[-.][A-Z0-9]{1,3})?",
+            symbol
+        ):
+            continue
+
+        results.append({
+            "symbol": symbol,
+            "name": name,
+            "exchange": exchange
+        })
+
+        if len(results) >= limit:
+            break
 
     return results
