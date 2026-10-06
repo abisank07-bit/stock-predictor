@@ -21,6 +21,7 @@ def search_tickers(query: str, limit: int = 8):
     Returns a list of {symbol, name, exchange} matches for a partial
     company name or symbol, e.g. "ms" -> MSFT (Microsoft Corporation), etc.
     """
+
     if not query or len(query.strip()) < 1:
         return []
 
@@ -39,11 +40,20 @@ def search_tickers(query: str, limit: int = 8):
         )
         resp.raise_for_status()
         data = resp.json()
+
     except (requests.RequestException, ValueError):
         return []
 
     # Only actual equities and ETFs work with the prediction flow.
     ALLOWED_TYPES = {"EQUITY", "ETF"}
+
+    # Only allow common US exchanges.
+    ALLOWED_EXCHANGES = {
+        "NMS",  # Nasdaq
+        "NYQ",  # NYSE
+        "ASE",  # NYSE American
+        "BTS",  # Cboe/US
+    }
 
     results = []
 
@@ -57,15 +67,20 @@ def search_tickers(query: str, limit: int = 8):
         if quote_type not in ALLOWED_TYPES:
             continue
 
-        # Make sure required fields exist
+        # Only allow US exchanges
+        if exchange not in ALLOWED_EXCHANGES:
+            continue
+
         if not symbol or not name:
             continue
 
-        # Extra protection against option-contract symbols
-        # Example rejected:
-        # AAPU290119C00042000
+        # Reject foreign-market symbols such as AAPL.TO
+        if "." in symbol:
+            continue
+
+        # Reject option-contract style symbols
         if not re.fullmatch(
-            r"[A-Z]{1,5}(?:[-.][A-Z0-9]{1,3})?",
+            r"[A-Z]{1,5}(?:-[A-Z]{1,3})?",
             symbol
         ):
             continue
