@@ -13,10 +13,16 @@ analyzer = SentimentIntensityAnalyzer()
 
 def get_news_headlines(ticker: str, limit: int = 8):
     """Pull recent news headlines for a ticker via yfinance."""
-    stock = yf.Ticker(ticker)
-    news = stock.news or []
-    headlines = [item.get("title", "") for item in news[:limit] if item.get("title")]
-    return headlines
+    try:
+        stock = yf.Ticker(ticker)
+        news = stock.news or []
+        headlines = [item.get("title", "") for item in news[:limit] if item.get("title")]
+        return headlines
+    except Exception:
+        # Yahoo Finance's news endpoint can rate-limit or fail intermittently,
+        # especially on shared/cloud IPs. Fall back to no headlines (which
+        # scores as neutral) instead of crashing the whole /predict request.
+        return []
 
 
 def score_sentiment(headlines: list[str]):
