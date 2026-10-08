@@ -111,8 +111,8 @@ function TickerSearch({ value, onChange, onSelect }) {
 }
 
 export default function App() {
-  const [ticker, setTicker] = useState("AAPL");
-  const [age, setAge] = useState(28);
+  const [ticker, setTicker] = useState("");
+  const [age, setAge] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
@@ -120,7 +120,7 @@ export default function App() {
   const [selectedName, setSelectedName] = useState(null);
 
   const handlePredict = useCallback(async () => {
-    if (!ticker) return;
+    if (!ticker || !age) return;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -172,7 +172,10 @@ export default function App() {
           <div className="form-row">
             <TickerSearch
               value={ticker}
-              onChange={setTicker}
+              onChange={(v) => {
+                setTicker(v);
+                setSelectedName(null);
+              }}
               onSelect={(r) => setSelectedName(r.name)}
             />
             <input
@@ -182,9 +185,9 @@ export default function App() {
               min={1}
               max={120}
               onChange={(e) => setAge(e.target.value)}
-              placeholder="Age"
+              placeholder="Enter your age"
             />
-            <button onClick={handlePredict} disabled={loading || !ticker}>
+            <button onClick={handlePredict} disabled={loading || !ticker || !age}>
               {loading ? (
                 <>
                   <span className="spinner" /> Analyzing
